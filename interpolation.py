@@ -2,7 +2,12 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import utils
+from utils import (
+    k_axis,
+    set_pi_ticks,
+    get_target_indices,
+    build_full
+)
 
 # =========================
 # 1. DEFINE CONSTANTS
@@ -22,9 +27,7 @@ mask = np.ones(256, dtype=bool)
 mask[REMOVED] = False
 data_indices = all_idx[mask]   # 234
 
-target_mask = np.ones(256, dtype=bool)
-target_mask[NON_RECONSTRUCT] = False
-target_indices = np.where(target_mask)[0]   # 242
+target_indices = get_target_indices()  # 242
 
 # =========================
 # 3. INTERPOLATION
@@ -123,25 +126,10 @@ def process_directory(input_dir, output_dir):
 # 6. HELPERS
 # =========================
 
-def k_axis():
-    return np.arange(-128, 128)
-
 def build_full_before(csi):
     A, T, _ = csi.shape
     full = np.full((A, T, 256), np.nan, dtype=np.complex128)
     full[:, :, data_indices] = csi
-    return full
-
-def build_full_after_amp(amp):
-    A, T, _ = amp.shape
-    full = np.full((A, T, 256), np.nan)
-    full[:, :, target_indices] = amp
-    return full
-
-def build_full_after_phase(phase):
-    A, T, _ = phase.shape
-    full = np.full((A, T, 256), np.nan)
-    full[:, :, target_indices] = phase
     return full
 
 # =========================
@@ -172,16 +160,6 @@ def unwrap_with_nan(x):
     return out
 
 # =========================
-# 9. PHASE Y AXIS TICKS
-# =========================
-
-def set_pi_ticks(ax):
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(2*np.pi))
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(
-        lambda val, pos: f"{val/np.pi:.0g}π" if val != 0 else "0"
-    ))
-
-# =========================
 # 9. CORE PLOT
 # =========================
 
@@ -200,11 +178,11 @@ def plot_pair(f1, f2, title):
     amp2 = np.load(f"dataset/interpolation/{f2.replace('.npy', '_amp.npy')}")
     phase2 = np.load(f"dataset/interpolation/{f2.replace('.npy', '_phase.npy')}")
 
-    amp1 = build_full_after_amp(amp1)[:, PACKET_IDX, :]
-    phase1 = build_full_after_phase(phase1)[:, PACKET_IDX, :]
+    amp1 = build_full(amp1, target_indices)[:, PACKET_IDX, :]
+    phase1 = build_full(phase1, target_indices)[:, PACKET_IDX, :]
 
-    amp2 = build_full_after_amp(amp2)[:, PACKET_IDX, :]
-    phase2 = build_full_after_phase(phase2)[:, PACKET_IDX, :]
+    amp2 = build_full(amp2, target_indices)[:, PACKET_IDX, :]
+    phase2 = build_full(phase2, target_indices)[:, PACKET_IDX, :]
 
     phase1 = unwrap_with_nan(phase1)
     phase2 = unwrap_with_nan(phase2)

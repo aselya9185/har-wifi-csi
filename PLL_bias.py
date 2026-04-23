@@ -3,6 +3,14 @@ import matplotlib.pyplot as plt
 import os
 import glob
 import matplotlib.ticker as ticker
+from utils import (
+    get_target_indices,
+    build_full,
+    unwrap_with_nan_full,
+    unwrap_with_nan_single,
+    plot_dataset,
+    set_pi_ticks
+)
 
 # =========================
 # 0. DIRECTORIES
@@ -18,46 +26,10 @@ PACKET_IDX = 1000
 # =========================
 
 REMOVED = [0,1,2,3,4,5,25,53,89,117,127,128,129,139,167,203,231,251,252,253,254,255]
-NON_RECONSTRUCT = [0,1,2,3,4,5,128,251,252,253,254,255]
 
 all_idx = np.arange(256)
 
-target_mask = np.ones(256, dtype=bool)
-target_mask[NON_RECONSTRUCT] = False
-target_indices = np.where(target_mask)[0]   # 242
-
-# =========================
-# 2. HELPERS
-# =========================
-
-def k_axis():
-    return np.arange(-128, 128)
-
-# -------- reconstruct full 256 --------
-def build_full_phase(phase):
-    A, T, K = phase.shape
-    full = np.full((A, T, 256), np.nan)
-    full[:, :, target_indices] = phase
-    return full
-
-# -------- NaN-safe unwrap --------
-def unwrap_with_nan_full(phase):
-    out = phase.copy()
-    for a in range(phase.shape[0]):
-        for t in range(phase.shape[1]):
-            valid = ~np.isnan(phase[a, t])
-            if np.sum(valid) > 1:
-                out[a, t, valid] = np.unwrap(phase[a, t, valid])
-    return out
-
-# -------- single packet unwrap --------
-def unwrap_with_nan_single(x):
-    out = x.copy()
-    for a in range(x.shape[0]):
-        valid = ~np.isnan(x[a])
-        if np.sum(valid) > 1:
-            out[a, valid] = np.unwrap(x[a, valid])
-    return out
+target_indices = get_target_indices() # 242
 
 # -------- PLL bias removal --------
 def remove_per_antenna_bias_full(phases):
@@ -79,22 +51,6 @@ def remove_per_antenna_bias_full(phases):
                 out[a, t, valid_a] = phases[a, t, valid_a] - bias
 
     return out
-
-# -------- plotting --------
-def plot_dataset(ax, data):
-    k = k_axis()
-    for a in range(data.shape[0]):
-        ax.plot(k, np.ma.masked_invalid(data[a]), label=f"Antenna {a}", linewidth=1)
-
-    ax.grid(True)
-    ax.legend(fontsize=8)
-
-# -------- π ticks --------
-def set_pi_ticks(ax):
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(2*np.pi))
-    ax.yaxis.set_major_formatter(
-        ticker.FuncFormatter(lambda val, pos: f"{val/np.pi:.0g}π" if val != 0 else "0")
-    )
 
 # =========================
 # 3. PROCESS ALL FILES
@@ -126,11 +82,11 @@ phase_empty_pll = np.load(os.path.join(output_dir, "r1_empty_phase.npy"))
 phase_walk_pll = np.load(os.path.join(output_dir, "r1_walking_1_phase.npy"))
 
 # reconstruct full
-empty_full = build_full_phase(phase_empty)
-walk_full = build_full_phase(phase_walk)
+empty_full = build_full(phase_empty, target_indices)
+walk_full = build_full(phase_walk, target_indices)
 
-empty_pll_full = build_full_phase(phase_empty_pll)
-walk_pll_full = build_full_phase(phase_walk_pll)
+empty_pll_full = build_full(phase_empty_pll, target_indices)
+walk_pll_full = build_full(phase_walk_pll, target_indices)
 
 # extract packet
 empty_before = unwrap_with_nan_single(empty_full[:, PACKET_IDX, :])

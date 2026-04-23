@@ -25,10 +25,10 @@ def k_axis():
 # RECONSTRUCTION
 # =========================
 
-def build_full(phase, target_indices):
-    A, T, _ = phase.shape
+def build_full(x, indices):
+    A, T, _ = x.shape
     full = np.full((A, T, 256), np.nan)
-    full[:, :, target_indices] = phase
+    full[:, :, indices] = x
     return full
 
 
