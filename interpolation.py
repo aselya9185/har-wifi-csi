@@ -15,7 +15,6 @@ from utils import (
 
 REMOVED = [0,1,2,3,4,5,25,53,89,117,127,128,129,139,167,203,231,251,252,253,254,255]
 PILOTS = [25, 53, 89, 117, 127, 129, 139, 167, 203, 231]
-NON_RECONSTRUCT = [0,1,2,3,4,5,128,251,252,253,254,255]
 
 # =========================
 # 2. INDEX MAPPING
@@ -27,7 +26,7 @@ mask = np.ones(256, dtype=bool)
 mask[REMOVED] = False
 data_indices = all_idx[mask]   # 234
 
-target_indices = get_target_indices()  # 242
+target_indices = get_target_indices()  # 244
 
 # =========================
 # 3. INTERPOLATION
@@ -36,8 +35,8 @@ target_indices = get_target_indices()  # 242
 def interpolate_pilots_packet(csi_packet):
     """
     Returns:
-        amplitude_interp (242,)
-        phase_interp (242,)  ← UNWRAPPED (correct domain)
+        amplitude_interp (244,)
+        phase_interp (244,)  ← UNWRAPPED (correct domain)
     """
 
     full_amp = np.full(256, np.nan)
@@ -239,7 +238,7 @@ def plot_pair(f1, f2, title):
     plt.show()
 
 # =========================
-# 9. RUN
+# 10. RUN
 # =========================
 
 process_directory("dataset/saved_csi_raw", "dataset/interpolation")

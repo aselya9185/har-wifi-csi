@@ -22,16 +22,17 @@ os.makedirs(output_dir, exist_ok=True)
 PACKET_IDX = 1000
 
 # =========================
-# 1. INDEX MAPPING (IMPORTANT)
+# 1. INDEX MAPPING
 # =========================
-
-REMOVED = [0,1,2,3,4,5,25,53,89,117,127,128,129,139,167,203,231,251,252,253,254,255]
 
 all_idx = np.arange(256)
 
-target_indices = get_target_indices() # 242
+target_indices = get_target_indices() # 244
 
-# -------- PLL bias removal --------
+# =========================
+# 2. PLL BIAS REMOVAL
+# =========================
+
 def remove_per_antenna_bias_full(phases):
     out = phases.copy()
 
