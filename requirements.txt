@@ -1,0 +1,10 @@
+numpy~=1.26.4
+matplotlib~=3.10.8
+pip~=21.2.4
+setuptools~=58.1.0
+pytz~=2025.2
+packaging~=26.0
+nexcsi~=0.5.2
+pandas~=2.3.3
+seaborn~=0.13.2
+scikit-learn~=1.7.2

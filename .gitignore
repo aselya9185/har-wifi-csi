@@ -1,0 +1,14 @@
+# data
+*.npy
+saved_csi/
+dataset/
+
+# python
+__pycache__/
+*.pyc
+venv/
+venv39/
+.env
+.ipynb_checkpoints/
+.idea/
+.DS_Store
