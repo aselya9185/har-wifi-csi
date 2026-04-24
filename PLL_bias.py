@@ -15,7 +15,7 @@ from utils import (
 # =========================
 # 0. DIRECTORIES
 # =========================
-input_dir = "dataset/interpolation"
+input_dir = "dataset/interpolation/phase"
 output_dir = "dataset/phase_processing/PLL"
 os.makedirs(output_dir, exist_ok=True)
 
@@ -57,7 +57,7 @@ def remove_per_antenna_bias_full(phases):
 # 3. PROCESS ALL FILES
 # =========================
 
-files = glob.glob(os.path.join(input_dir, "*_phase.npy"))
+files = glob.glob(os.path.join(input_dir, "*.npy"))
 
 for file_path in files:
     filename = os.path.basename(file_path)

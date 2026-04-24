@@ -1,95 +1,235 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import os
 import glob
+from utils import (
+    build_full,
+    get_target_indices,
+    unwrap_with_nan_single,
+    plot_dataset,
+    set_pi_ticks
+)
+from matplotlib.lines import Line2D
 
-# Directories
-input_dir = "saved_csi"
-output_dir = os.path.join(input_dir, "LRT")
+
+# =========================
+# 0. DIRECTORIES
+# =========================
+input_dir = "dataset/phase_processing/PLL"
+output_dir = "dataset/phase_processing/LRT"
 os.makedirs(output_dir, exist_ok=True)
 
-packet_idx = 1000
+PACKET_IDX = 1000
 
-# ---- Apply LRT to whole dataset and save phase-only ----
-csi_files = glob.glob(os.path.join(input_dir, "*.npy"))
+# =========================
+# 1. INDEX SETUP
+# =========================
+target_indices = get_target_indices()  # 244
 
-for file_path in csi_files:
-    filename = os.path.basename(file_path)
-    name, ext = os.path.splitext(filename)
-
-    csi_data = np.load(file_path)
-    num_ant, num_packets, num_sub = csi_data.shape
-    subcarriers = np.arange(num_sub)
-
-    corrected_dataset = np.zeros((num_ant, num_packets, num_sub))
-
-    for ant in range(num_ant):
-        for pkt in range(num_packets):
-            raw_phase = np.unwrap(np.angle(csi_data[ant, pkt, :]))
-            slope, intercept = np.polyfit(subcarriers, raw_phase, 1)
-            regression_line = slope * subcarriers + intercept
-            corrected_dataset[ant, pkt, :] = raw_phase - regression_line
-
-    save_path = os.path.join(output_dir, f"{name}_LRT.npy")
-    np.save(save_path, corrected_dataset)
-
-
-# ---- Plotting function (unchanged logic) ----
-def plot_lrt_on_axis(ax, loaded_csi, title):
-
-    num_antennas = loaded_csi.shape[0]
-
-    for antenna in range(num_antennas):
-
-        csi_packet = loaded_csi[antenna, packet_idx, :]
-        subcarriers = np.arange(len(csi_packet))
-
-        # Raw phase
-        raw_phase = np.unwrap(np.angle(csi_packet))
-
-        # LRT
-        slope, intercept = np.polyfit(subcarriers, raw_phase, 1)
-        regression_line = slope * subcarriers + intercept
-        corrected_phase = raw_phase - regression_line
-
-        color = f"C{antenna}"
-
-        ax.plot(subcarriers, raw_phase, color=color, alpha=0.5)
-        ax.plot(subcarriers, regression_line, linestyle='--', lw=0.8, color=color, alpha=0.6)
-        ax.plot(subcarriers, corrected_phase,
-                color=color, label=f'Antenna {antenna}')
-
-    ax.axhline(0, color='gray', linestyle=':')
-    ax.set_title(title)
-    ax.set_xlabel("Subcarrier Index $k$")
-    ax.set_ylabel("Phase [radians]")
-    ax.grid(True)
-    ax.legend()
-
-
-# ---- Example plotting ----
-csi_empty = np.load('dataset/saved_csi_raw/r1_empty.npy')
-csi_walking = np.load('dataset/saved_csi_raw/r1_walking_1.npy')
-
-fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
-
-plot_lrt_on_axis(axes[0], csi_empty,
-                 "Empty Room – LRT per Antenna (Packet 1000)")
-
-plot_lrt_on_axis(axes[1], csi_walking,
-                 "Walking Human – LRT per Antenna (Packet 1000)")
-
-style_legend = [
-    Line2D([0], [0], color='black', lw=1, alpha=0.5, label='Raw Phase'),
-    Line2D([0], [0], color='black', lw=0.8, alpha=0.6, linestyle='--', label='Regression Line'),
-    Line2D([0], [0], color='black', lw=1, label='Corrected Phase')
+# segment boundaries (on 244 domain)
+segments_bounds = [
+    (0, 58),
+    (58, 122),
+    (122, 185),
+    (185, 244)
 ]
 
-fig.legend(handles=style_legend,
-           loc='upper center',
-           ncol=3,
-           frameon=False)
+# =========================
+# 2. LRT FUNCTION
+# =========================
 
-plt.tight_layout(rect=[0, 0, 1, 0.92])
+def apply_lrt_segmented(phase):
+    """
+    phase: (A, T, 244)
+    """
+    A, T, K = phase.shape
+    corrected = np.full_like(phase, np.nan)
+
+    for a in range(A):
+        for t in range(T):
+
+            for (start, end) in segments_bounds:
+
+                seg = phase[a, t, start:end]
+
+                valid = ~np.isnan(seg)
+                if np.sum(valid) < 2:
+                    continue
+
+                x = np.arange(start, end)[valid]
+                y = seg[valid]
+
+                # linear regression
+                slope, intercept = np.polyfit(x, y, 1)
+                trend = slope * x + intercept
+
+                corrected[a, t, start:end][valid] = y - trend
+
+    return corrected
+
+# =========================
+# 2. DRAW STITCHING LINES
+# =========================
+
+def plot_stitching_lines(ax, target_indices, segments_bounds):
+    for i in range(1, len(segments_bounds)):
+
+        prev_end = segments_bounds[i-1][1]
+        curr_start = segments_bounds[i][0]
+
+        # map both indices
+        k_prev = target_indices[prev_end - 1]
+        k_curr = target_indices[curr_start]
+
+        # midpoint → visually correct boundary
+        k_plot = ((k_prev + k_curr) / 2) - 128
+
+        ax.axvline(x=k_plot, color='deeppink', linestyle='--', linewidth=0.7)
+
+
+# =========================
+# 3. PROCESS ALL FILES
+# =========================
+
+files = glob.glob(os.path.join(input_dir, "*_phase.npy"))
+
+for file_path in files:
+    filename = os.path.basename(file_path)
+    print(f"Processing {filename}")
+
+    phase = np.load(file_path)  # already unwrapped + PLL removed
+
+    phase_lrt = apply_lrt_segmented(phase)
+
+    np.save(os.path.join(output_dir, filename), phase_lrt)
+
+print("All files processed.")
+
+# =========================
+# 4. LOAD EXAMPLES
+# =========================
+
+phase_empty = np.load(os.path.join(input_dir, "r1_empty_phase.npy"))
+phase_walk = np.load(os.path.join(input_dir, "r1_walking_1_phase.npy"))
+
+phase_empty_lrt = np.load(os.path.join(output_dir, "r1_empty_phase.npy"))
+phase_walk_lrt = np.load(os.path.join(output_dir, "r1_walking_1_phase.npy"))
+
+# =========================
+# 5. REBUILD FULL 256 FOR PLOTTING
+# =========================
+
+empty_full = build_full(phase_empty, target_indices)
+walk_full = build_full(phase_walk, target_indices)
+
+empty_lrt_full = build_full(phase_empty_lrt, target_indices)
+walk_lrt_full = build_full(phase_walk_lrt, target_indices)
+
+# extract packet
+empty_before = unwrap_with_nan_single(empty_full[:, PACKET_IDX, :])
+walk_before = unwrap_with_nan_single(walk_full[:, PACKET_IDX, :])
+
+empty_after = unwrap_with_nan_single(empty_lrt_full[:, PACKET_IDX, :])
+walk_after = unwrap_with_nan_single(walk_lrt_full[:, PACKET_IDX, :])
+
+# =========================
+# 6. FIX Y LIMITS
+# =========================
+
+combined = np.concatenate([
+    empty_before.flatten(),
+    walk_before.flatten(),
+    empty_after.flatten(),
+    walk_after.flatten()
+])
+
+valid = combined[~np.isnan(combined)]
+
+y_min = np.min(valid)
+y_max = np.max(valid)
+
+margin = 0.05 * (y_max - y_min)
+y_min -= margin
+y_max += margin
+
+# =========================
+# 7. PLOT BEFORE
+# =========================
+
+fig_before, axs_before = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
+
+fig_before.suptitle("Before LRT (After PLL)", fontsize=14)
+
+axs_before[0].set_title("Empty")
+axs_before[1].set_title("Walking")
+
+plot_dataset(axs_before[0], empty_before)
+plot_dataset(axs_before[1], walk_before)
+
+plot_stitching_lines(axs_before[0], target_indices, segments_bounds)
+plot_stitching_lines(axs_before[1], target_indices, segments_bounds)
+
+stitch_legend = Line2D(
+    [0], [0],
+    color='deeppink',
+    linestyle='--',
+    lw=1.2,
+    label='Subband stitching points'
+)
+
+fig_before.legend(
+    handles=[stitch_legend],
+    loc='upper center',
+    bbox_to_anchor=(0.5, 0.92),
+    frameon=False
+)
+
+for ax in axs_before:
+    ax.set_ylim(y_min, y_max)
+    ax.set_xlabel("Subcarrier Index")
+    ax.set_ylabel("Phase")
+    set_pi_ticks(ax)
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.show()
+
+# =========================
+# 8. PLOT AFTER
+# =========================
+
+fig_after, axs_after = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
+
+fig_after.suptitle("After LRT (Slope Removed)", fontsize=14)
+
+axs_after[0].set_title("Empty")
+axs_after[1].set_title("Walking")
+
+plot_dataset(axs_after[0], empty_after)
+plot_dataset(axs_after[1], walk_after)
+
+plot_stitching_lines(axs_after[0], target_indices, segments_bounds)
+plot_stitching_lines(axs_after[1], target_indices, segments_bounds)
+
+stitch_legend = Line2D(
+    [0], [0],
+    color='deeppink',
+    linestyle='--',
+    lw=1.2,
+    label='Subband stitching points'
+)
+
+fig_after.legend(
+    handles=[stitch_legend],
+    loc='upper center',
+    bbox_to_anchor=(0.5, 0.92),
+    frameon=False
+)
+
+for ax in axs_after:
+    ax.set_ylim(y_min, y_max)
+    ax.set_xlabel("Subcarrier Index")
+    ax.set_ylabel("Phase")
+    set_pi_ticks(ax)
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
 plt.show()

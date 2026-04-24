@@ -108,7 +108,12 @@ def process_csi_array(csi):
 # =========================
 
 def process_directory(input_dir, output_dir):
-    os.makedirs(output_dir, exist_ok=True)
+
+    amp_dir = os.path.join(output_dir, "amplitude")
+    phase_dir = os.path.join(output_dir, "phase")
+
+    os.makedirs(amp_dir, exist_ok=True)
+    os.makedirs(phase_dir, exist_ok=True)
 
     for filename in os.listdir(input_dir):
         if filename.endswith(".npy"):
@@ -118,8 +123,10 @@ def process_directory(input_dir, output_dir):
 
             amp, phase = process_csi_array(csi)
 
-            np.save(os.path.join(output_dir, filename.replace(".npy", "_amp.npy")), amp)
-            np.save(os.path.join(output_dir, filename.replace(".npy", "_phase.npy")), phase)
+            base = filename.replace(".npy", "")
+
+            np.save(os.path.join(amp_dir, f"{base}_amp.npy"), amp)
+            np.save(os.path.join(phase_dir, f"{base}_phase.npy"), phase)
 
 # =========================
 # 6. HELPERS
@@ -171,11 +178,11 @@ def plot_pair(f1, f2, title):
     csi2_b = build_full_before(np.load(os.path.join("dataset/saved_csi_raw", f2)))[:, PACKET_IDX, :]
 
     # AFTER
-    amp1 = np.load(f"dataset/interpolation/{f1.replace('.npy', '_amp.npy')}")
-    phase1 = np.load(f"dataset/interpolation/{f1.replace('.npy', '_phase.npy')}")
+    amp1 = np.load(f"dataset/interpolation/amplitude/{f1.replace('.npy', '_amp.npy')}")
+    phase1 = np.load(f"dataset/interpolation/phase/{f1.replace('.npy', '_phase.npy')}")
 
-    amp2 = np.load(f"dataset/interpolation/{f2.replace('.npy', '_amp.npy')}")
-    phase2 = np.load(f"dataset/interpolation/{f2.replace('.npy', '_phase.npy')}")
+    amp2 = np.load(f"dataset/interpolation/amplitude/{f2.replace('.npy', '_amp.npy')}")
+    phase2 = np.load(f"dataset/interpolation/phase/{f2.replace('.npy', '_phase.npy')}")
 
     amp1 = build_full(amp1, target_indices)[:, PACKET_IDX, :]
     phase1 = build_full(phase1, target_indices)[:, PACKET_IDX, :]
