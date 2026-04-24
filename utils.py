@@ -6,12 +6,19 @@ import matplotlib.ticker as ticker
 # =========================
 
 NON_RECONSTRUCT = [0,1,2,3,4,5,128,251,252,253,254,255]
+REMOVED = [0,1,2,3,4,5,25,53,89,117,127,128,129,139,167,203,231,251,252,253,254,255]
 
 def get_target_indices():
     mask = np.ones(256, dtype=bool)
     mask[NON_RECONSTRUCT] = False
     return np.where(mask)[0]
 
+def get_data_indices():
+    all_idx = np.arange(256)
+    mask = np.ones(256, dtype=bool)
+    mask[REMOVED] = False
+
+    return all_idx[mask]  # 234
 
 # =========================
 # AXIS

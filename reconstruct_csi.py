@@ -1,82 +1,105 @@
 import numpy as np
 import os
 import glob
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+from utils import build_full, get_data_indices, get_target_indices
 
-# Directories
-raw_dir = "saved_csi"
-phase_dir = "saved_csi/PLL+jumpSplit+LRT"
-output_dir = "saved_csi/Reconstructed"
+# =========================
+# 0. DIRECTORIES
+# =========================
+amp_dir = "dataset/interpolation/amplitude"
+phase_dir = "dataset/phase_processing/LRT"
+raw_dir = "dataset/saved_csi_raw"
+output_dir = "dataset/reconstructed_csi"
 
 os.makedirs(output_dir, exist_ok=True)
 
-# Find raw CSI datasets
-raw_files = glob.glob(os.path.join(raw_dir, "*.npy"))
+# =========================
+# 1. INDICES
+# =========================
+data_indices = get_data_indices()     # 234
+target_indices = get_target_indices() # 244
 
-for raw_path in raw_files:
+# =========================
+# 2. LOAD FILES
+# =========================
+amp_files = sorted(glob.glob(os.path.join(amp_dir, "*_amp.npy")))
 
-    filename = os.path.basename(raw_path)
-    name, _ = os.path.splitext(filename)
+for amp_path in amp_files:
 
-    if "correctedCSI" in name:
+    filename = os.path.basename(amp_path)
+    name = filename.replace("_amp.npy", "")
+
+    phase_path = os.path.join(phase_dir, f"{name}_phase.npy")
+    raw_path = os.path.join(raw_dir, f"{name}.npy")
+
+    if not os.path.exists(phase_path):
+        print(f"Missing phase file for {name}")
+        continue
+
+    if not os.path.exists(raw_path):
+        print(f"Missing raw CSI for {name}")
         continue
 
     print(f"\nProcessing {name}")
 
-    # ---- Load raw CSI ----
-    csi_data = np.load(raw_path, allow_pickle=True)
+    # =========================
+    # LOAD DATA
+    # =========================
+    amp = np.load(amp_path)
+    phase = np.load(phase_path)
+    csi_raw = np.load(raw_path)
 
-    amplitude = np.abs(csi_data)
+    if amp.shape != phase.shape:
+        raise ValueError(f"Shape mismatch: {amp.shape} vs {phase.shape}")
 
-    # ---- Load phase segments ----
-    phase_segments = []
-    for i in range(1, 5):
-        path = f"{phase_dir}/{name}_PLL_interval_{i}_LRT.npy"
-        if not os.path.exists(path):
-            print(f"Missing: {path}")
-            continue
-        phase_segments.append(np.load(path))
+    # =========================
+    # RECONSTRUCT
+    # =========================
+    csi_reconstructed = amp * np.exp(1j * phase)
 
-    # ---- Reconstruct each segment separately ----
-    start_idx = 0
+    save_path = os.path.join(output_dir, f"{name}_reconstructed.npy")
+    np.save(save_path, csi_reconstructed)
 
-    for i, phase_seg in enumerate(phase_segments):
+    print(f"Saved → {save_path}")
 
-        seg_len = phase_seg.shape[2]
-        end_idx = start_idx + seg_len
+    # =========================
+    # BUILD FULL 256
+    # =========================
+    csi_raw_full = build_full(csi_raw, data_indices)
+    csi_reconstructed_full = build_full(csi_reconstructed, target_indices)
 
-        amp_seg = amplitude[:, :, start_idx:end_idx]
+    # =========================
+    # VISUALIZATION
+    # =========================
+    PACKETS = 500
 
-        # Shape check
-        if amp_seg.shape != phase_seg.shape:
-            raise ValueError("Mismatch between amplitude and phase segment")
+    # ---- RAW CSI ----
+    plt.figure(figsize=(6,4))
+    plt.imshow(
+        np.abs(csi_raw_full[0, :PACKETS, :]),
+        aspect='auto',
+        extent=[-128, 127, PACKETS, 0]   # 👈 FIXED AXIS
+    )
+    plt.colorbar(label="Amplitude")
+    plt.xlabel("Subcarrier index k")
+    plt.ylabel("Packet index")
+    plt.title(f"{name} – RAW CSI")
+    plt.tight_layout()
+    plt.show()
 
-        # Reconstruct CSI
-        complex_seg = amp_seg * np.exp(1j * phase_seg)
+    # ---- RECONSTRUCTED CSI ----
+    plt.figure(figsize=(6,4))
+    plt.imshow(
+        np.abs(csi_reconstructed_full[0, :PACKETS, :]),
+        aspect='auto',
+        extent=[-128, 127, PACKETS, 0]   # 👈 FIXED AXIS
+    )
+    plt.colorbar(label="Amplitude")
+    plt.xlabel("Subcarrier index k")
+    plt.ylabel("Packet index")
+    plt.title(f"{name} – RECONSTRUCTED CSI")
+    plt.tight_layout()
+    plt.show()
 
-        print(f"Segment {i+1} shape:", complex_seg.shape)
-
-        # ---- Save ----
-        save_path = os.path.join(
-            output_dir,
-            f"{name}_PLL_interval_{i+1}_LRT_corrected.npy"
-        )
-
-        np.save(save_path, complex_seg)
-        print(f"Saved → {save_path}")
-
-        # ---- Optional visualization ----
-        plt.figure(figsize=(6,4))
-        plt.imshow(
-            np.abs(complex_seg[0, :2000, :]),
-            aspect='auto'
-        )
-        plt.colorbar(label="Amplitude")
-        plt.xlabel("Subcarrier (segment)")
-        plt.ylabel("Packet")
-        plt.title(f"{name} – Segment {i+1} amplitude evolution")
-        plt.show()
-
-        start_idx = end_idx
-
-print("\nAll datasets reconstructed (per segment).")
+print("\nAll datasets reconstructed.")
