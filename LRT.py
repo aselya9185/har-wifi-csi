@@ -181,6 +181,7 @@ fig_before.legend(
 
 for ax in axs_before:
     ax.set_ylim(y_min, y_max)
+    set_pi_ticks(ax)
     ax.set_ylabel("Phase")
 
 axs_before[1].set_xlabel("Subcarrier Index")
