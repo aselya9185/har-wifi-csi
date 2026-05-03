@@ -1,7 +1,5 @@
 # data
-*.npy
 saved_csi/
-dataset/
 
 # python
 __pycache__/
