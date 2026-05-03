@@ -117,14 +117,12 @@ for name in datasets:
         # WRAPPED + UNWRAPPED
         # =========================
         best_thetas_wrapped = (best_thetas + np.pi) % (2 * np.pi) - np.pi
-        best_thetas_unwrapped = np.unwrap(best_thetas_wrapped)
 
         # =========================
         # SAVE
         # =========================
         np.save(os.path.join(output_dir, f"{name}_ant{ant1}{ant2}_dist.npy"), best_distances)
         np.save(os.path.join(output_dir, f"{name}_ant{ant1}{ant2}_theta_wrapped.npy"), best_thetas_wrapped)
-        np.save(os.path.join(output_dir, f"{name}_ant{ant1}{ant2}_theta_unwrapped.npy"), best_thetas_unwrapped)
 
         # =========================
         # DISTANCE PLOT
