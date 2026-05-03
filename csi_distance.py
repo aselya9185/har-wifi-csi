@@ -6,9 +6,11 @@ import os
 # DIRECTORIES
 # =========================
 input_dir = "dataset/reconstructed_csi"
-output_dir = "dataset/csi_distance_final"
+dist_dir = "dataset/csi_distance"
+theta_dir = "dataset/theta"
 
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(dist_dir, exist_ok=True)
+os.makedirs(theta_dir, exist_ok=True)
 
 # =========================
 # PARAMETERS
@@ -114,15 +116,16 @@ for name in datasets:
         best_thetas = np.array(best_thetas)
 
         # =========================
-        # WRAPPED + UNWRAPPED
+        # WRAPPED
+
         # =========================
         best_thetas_wrapped = (best_thetas + np.pi) % (2 * np.pi) - np.pi
 
         # =========================
         # SAVE
         # =========================
-        np.save(os.path.join(output_dir, f"{name}_ant{ant1}{ant2}_dist.npy"), best_distances)
-        np.save(os.path.join(output_dir, f"{name}_ant{ant1}{ant2}_theta_wrapped.npy"), best_thetas_wrapped)
+        np.save(os.path.join(dist_dir, f"{name}_ant{ant1}{ant2}_dist.npy"), best_distances)
+        np.save(os.path.join(theta_dir, f"{name}_ant{ant1}{ant2}_theta.npy"), best_thetas_wrapped)
 
         # =========================
         # DISTANCE PLOT
