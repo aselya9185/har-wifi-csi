@@ -165,6 +165,56 @@ for W2 in W2_values:
             f"r2→r1-{pair}-W2={W2}"
         )
 
+        # =========================
+        # SETUP 4: r1 -> r1
+        # =========================
+        X, y = prepare_xy(data_r1)
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.5, random_state=42
+        )
+
+        X_train, X_test = scale_data(X_train, X_test)
+
+        y_pred = run_rf(X_train, y_train, X_test)
+
+        acc = accuracy_score(y_test, y_pred)
+        err = 1 - acc
+
+        results.append(["r1_to_r1", pair, W2, acc, err])
+
+        save_conf_matrix(
+            y_test,
+            y_pred,
+            f"{plot_root}/confusion_matrix/w2_{W2}/r1_to_r1/{pair}.png",
+            f"r1→r1 - {pair} - W2={W2}"
+        )
+
+        # =========================
+        # SETUP 5: r2 -> r2
+        # =========================
+        X, y = prepare_xy(data_r2)
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.5, random_state=42
+        )
+
+        X_train, X_test = scale_data(X_train, X_test)
+
+        y_pred = run_rf(X_train, y_train, X_test)
+
+        acc = accuracy_score(y_test, y_pred)
+        err = 1 - acc
+
+        results.append(["r2_to_r2", pair, W2, acc, err])
+
+        save_conf_matrix(
+            y_test,
+            y_pred,
+            f"{plot_root}/confusion_matrix/w2_{W2}/r2_to_r2/{pair}.png",
+            f"r2→r2 - {pair} - W2={W2}"
+        )
+
 
 # =========================
 # SAVE SUMMARY TABLE FIGURE
@@ -179,24 +229,45 @@ os.makedirs(f"{plot_root}/accuracy_error", exist_ok=True)
 csv_path = f"{plot_root}/accuracy_error/summary_table.csv"
 df.to_csv(csv_path, index=False)
 
-# ---- SAVE IMAGE ----
-row_count = len(df)
-fig_height = max(6, row_count * 0.3)  # dynamic scaling
-fig, ax = plt.subplots(figsize=(12, fig_height))
-ax.axis('off')
+# TOP 10 BEST CONFIGS
+best_df = df.sort_values(by="accuracy", ascending=False).head(10)
 
-table = ax.table(
-    cellText=df.round(3).values,
-    colLabels=df.columns,
-    loc='center'
+best_path = f"{plot_root}/accuracy_error/best_configurations.csv"
+best_df.to_csv(best_path, index=False)
+
+# =========================
+# BEST ANTENNA (AVERAGE)
+# =========================
+best_antenna_avg = (
+    df.groupby("antenna_pair")["accuracy"]
+    .mean()
+    .sort_values(ascending=False)
 )
 
-table.auto_set_font_size(False)
-table.set_fontsize(8)
-table.auto_set_column_width(col=list(range(len(df.columns))))
-table.scale(1, 1.2)
+best_antenna_avg_path = f"{plot_root}/accuracy_error/best_antenna_avg.csv"
+best_antenna_avg.to_csv(best_antenna_avg_path)
 
-plt.savefig(f"{plot_root}/accuracy_error/summary_table.png")
-plt.close()
+print("\nBest antenna pairs (average accuracy):")
+print(best_antenna_avg)
+
+# # ---- SAVE IMAGE ----
+# row_count = len(df)
+# fig_height = max(6, row_count * 0.3)  # dynamic scaling
+# fig, ax = plt.subplots(figsize=(12, fig_height))
+# ax.axis('off')
+#
+# table = ax.table(
+#     cellText=df.round(3).values,
+#     colLabels=df.columns,
+#     loc='center'
+# )
+#
+# table.auto_set_font_size(False)
+# table.set_fontsize(8)
+# table.auto_set_column_width(col=list(range(len(df.columns))))
+# table.scale(1, 1.2)
+#
+# plt.savefig(f"{plot_root}/accuracy_error/summary_table.png")
+# plt.close()
 
 print("\nAll experiments completed and plots saved.")
