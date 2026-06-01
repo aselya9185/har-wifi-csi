@@ -1,11 +1,11 @@
 # data
 saved_csi/
+dataset/
+*.npy
 
 # python
 __pycache__/
 *.pyc
-venv/
-venv39/
 .env
 .ipynb_checkpoints/
 .idea/
