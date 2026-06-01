@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from utils import (
     k_axis,
     set_pi_ticks,
@@ -33,24 +32,18 @@ target_indices = get_target_indices()  # 244
 # =========================
 
 def interpolate_pilots_packet(csi_packet):
-    """
-    Returns:
-        amplitude_interp (244,)
-        phase_interp (244,)  ← UNWRAPPED (correct domain)
-    """
-
     full_amp = np.full(256, np.nan)
     full_phase = np.full(256, np.nan)
 
-    # --- extract ---
+    # extract
     amp = np.abs(csi_packet)
     phase = np.unwrap(np.angle(csi_packet))
 
-    # --- place known ---
+    # place known
     full_amp[data_indices] = amp
     full_phase[data_indices] = phase
 
-    # --- interpolate pilots ---
+    # interpolate pilots
     missing = sorted(PILOTS)
 
     i = 0

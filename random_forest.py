@@ -9,7 +9,6 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-
 # =========================
 # PARAMETERS
 # =========================
@@ -25,7 +24,6 @@ plot_root = "plots"
 
 os.makedirs(plot_root, exist_ok=True)
 
-
 # =========================
 # HELPERS
 # =========================
@@ -34,12 +32,10 @@ def load_dataset(path):
         return None
     return np.load(path)
 
-
 def prepare_xy(data):
     X = data[:, :-1]
     y = data[:, -1].astype(int)
     return X, y
-
 
 def scale_data(X_train, X_test):
     scaler = StandardScaler()
@@ -47,12 +43,10 @@ def scale_data(X_train, X_test):
     X_test = scaler.transform(X_test)
     return X_train, X_test
 
-
 def run_rf(X_train, y_train, X_test):
     model = RandomForestClassifier(class_weight="balanced", random_state=42)
     model.fit(X_train, y_train)
     return model.predict(X_test)
-
 
 def save_conf_matrix(y_true, y_pred, save_path, title):
     cm = confusion_matrix(y_true, y_pred)
@@ -215,7 +209,6 @@ for W2 in W2_values:
             f"r2→r2 - {pair} - W2={W2}"
         )
 
-
 # =========================
 # SAVE SUMMARY TABLE FIGURE
 # =========================
@@ -229,8 +222,8 @@ os.makedirs(f"{plot_root}/accuracy_error", exist_ok=True)
 csv_path = f"{plot_root}/accuracy_error/summary_table.csv"
 df.to_csv(csv_path, index=False)
 
-# TOP 10 BEST CONFIGS
-best_df = df.sort_values(by="accuracy", ascending=False).head(10)
+# TOP 30 BEST CONFIGS
+best_df = df.sort_values(by="accuracy", ascending=False).head(30)
 
 best_path = f"{plot_root}/accuracy_error/best_configurations.csv"
 best_df.to_csv(best_path, index=False)
@@ -249,25 +242,5 @@ best_antenna_avg.to_csv(best_antenna_avg_path)
 
 print("\nBest antenna pairs (average accuracy):")
 print(best_antenna_avg)
-
-# # ---- SAVE IMAGE ----
-# row_count = len(df)
-# fig_height = max(6, row_count * 0.3)  # dynamic scaling
-# fig, ax = plt.subplots(figsize=(12, fig_height))
-# ax.axis('off')
-#
-# table = ax.table(
-#     cellText=df.round(3).values,
-#     colLabels=df.columns,
-#     loc='center'
-# )
-#
-# table.auto_set_font_size(False)
-# table.set_fontsize(8)
-# table.auto_set_column_width(col=list(range(len(df.columns))))
-# table.scale(1, 1.2)
-#
-# plt.savefig(f"{plot_root}/accuracy_error/summary_table.png")
-# plt.close()
 
 print("\nAll experiments completed and plots saved.")

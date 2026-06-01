@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import glob
-import matplotlib.ticker as ticker
 from utils import (
     get_target_indices,
     build_full,
@@ -96,10 +95,6 @@ walk_before = unwrap_with_nan_single(walk_full[:, PACKET_IDX, :])
 empty_after = unwrap_with_nan_single(empty_pll_full[:, PACKET_IDX, :])
 walk_after = unwrap_with_nan_single(walk_pll_full[:, PACKET_IDX, :])
 
-# =========================
-# 5. FIX Y-LIMITS (NO AUTOSCALE)
-# =========================
-
 combined = np.concatenate([
     empty_before.flatten(),
     walk_before.flatten(),
@@ -117,7 +112,7 @@ y_min -= margin
 y_max += margin
 
 # =========================
-# 6. PLOT BEFORE
+# 5. PLOT BEFORE
 # =========================
 
 fig_before, axs_before = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
@@ -140,7 +135,7 @@ plt.tight_layout(rect=[0, 0, 1, 0.95])
 plt.show()
 
 # =========================
-# 7. PLOT AFTER
+# 6. PLOT AFTER
 # =========================
 
 fig_after, axs_after = plt.subplots(1, 2, figsize=(14, 5), sharey=True)

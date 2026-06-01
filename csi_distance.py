@@ -89,7 +89,7 @@ for filename in files:
 
             candidates = []
 
-            # ---- scan all theta ----
+            # scan all theta
             for theta in theta_vals:
                 w2 = np.exp(1j * theta)
 
@@ -101,13 +101,13 @@ for filename in files:
 
                 candidates.append((theta, mean_d))
 
-            # ---- sort by distance (descending) ----
+            # sort by distance (descending)
             candidates = sorted(candidates, key=lambda x: -x[1])
 
-            # ---- take top-K to avoid noise ----
+            # take top-K to avoid noise
             top_k = candidates[:5]
 
-            # ---- choose theta closest to previous ----
+            # choose theta closest to previous
             best_theta, best_distance = min(
                 top_k,
                 key=lambda x: abs(angle_diff(x[0], prev_theta))
@@ -188,7 +188,11 @@ def plot_comparison(room_prefix, activity_names):
         for name in activity_names:
             key = f"{name}_ant{ant1}{ant2}"
             if key in comparison_data:
-                plt.plot(comparison_data[key], label=name)
+                plt.plot(
+                    comparison_data[key],
+                    label=name,
+                    linewidth=0.9,
+                )
 
         plt.title(f"{room_prefix.upper()} – Ant {ant1}-{ant2}")
         plt.xlabel("Window index")

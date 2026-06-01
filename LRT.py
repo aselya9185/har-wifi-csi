@@ -38,9 +38,7 @@ segments_bounds = [
 # 2. LRT FUNCTION
 # =========================
 def apply_lrt_segmented(phase):
-    """
-    phase: (A, T, 244)
-    """
+    # phase: (A, T, 244)
     A, T, K = phase.shape
     corrected = np.full_like(phase, np.nan)
 
@@ -114,7 +112,7 @@ phase_empty_lrt = np.load(os.path.join(output_dir, "r1_empty_phase.npy"))
 phase_walk_lrt = np.load(os.path.join(output_dir, "r1_walking_1_phase.npy"))
 
 # =========================
-# 5. REBUILD FULL 256 FOR PLOTTING
+# 6. REBUILD FULL 256 FOR PLOTTING
 # =========================
 empty_full = build_full(phase_empty, target_indices)
 walk_full = build_full(phase_walk, target_indices)
