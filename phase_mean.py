@@ -1,12 +1,9 @@
-# Re-import libraries and re-load files after code environment reset
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Reload CSI files
 csi_empty = np.load('dataset/saved_csi_raw/r1_empty.npy', allow_pickle=True)
 csi_walk = np.load('dataset/saved_csi_raw/r1_walking_1.npy', allow_pickle=True)
 
-# Function to compute mean phase per antenna across packets
 def compute_mean_phase(csi_data):
     phases = np.angle(csi_data)  # Extract raw phase
     mean_phase = np.mean(phases, axis=1)  # Average over packets
