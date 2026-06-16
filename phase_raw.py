@@ -2,9 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load CSI
-loaded_csi = np.load('dataset/saved_csi_raw/r1_empty.npy')  # Adjust path if needed
-
-# loaded_csi = np.load('saved_csi/r1_walking_1.npy')  # Adjust path if needed
+loaded_csi = np.load('dataset/saved_csi_raw/r1_empty.npy')
 
 # Check shape
 print("CSI shape:", loaded_csi.shape)  # (4, 4962, 234)
